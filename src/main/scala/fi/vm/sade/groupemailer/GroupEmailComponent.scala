@@ -10,23 +10,22 @@ import scalaj.http.HttpOptions
 
 
 trait GroupEmailComponent {
-  this: ApplicationSettingsComponent =>
 
   val groupEmailService: GroupEmailService
 
-  class RemoteGroupEmailService extends GroupEmailService with JsonFormats with Logging {
+  class RemoteGroupEmailService(groupEmailerSettings: GroupEmailerSettings) extends GroupEmailService with JsonFormats with Logging {
     private val jsessionPattern = """(^JSESSIONID=[^;]+)""".r
-    private lazy val casClient = new CasClient(new CasConfig(settings.casUrl))
+    private lazy val casClient = new CasClient(new CasConfig(groupEmailerSettings.casUrl))
     private val httpOptions = Seq(HttpOptions.connTimeout(10000), HttpOptions.readTimeout(90000))
 
     def send(email: GroupEmail): Option[String] = {
       sessionRequest match {
         case Some(sessionId) => {
-          val groupEmailRequest = DefaultHttpClient.httpPost(settings.groupEmailServiceUrl, Some(Serialization.write(email)), httpOptions: _*)
+          val groupEmailRequest = DefaultHttpClient.httpPost(groupEmailerSettings.groupEmailServiceUrl, Some(Serialization.write(email)), httpOptions: _*)
             .header("Cookie", sessionId)
             .header("Content-type", "application/json")
 
-          logger.info(s"Sending email to ${settings.groupEmailServiceUrl}")
+          logger.info(s"Sending email to ${groupEmailerSettings.groupEmailServiceUrl}")
           groupEmailRequest.response() match {
             case Some(json) => {
               val jobId = (parse(json) \ "id").extractOpt[String]
@@ -48,12 +47,12 @@ trait GroupEmailComponent {
 
     private def sessionRequest: Option[String] = {
       val ticketRequest = casClient.getServiceTicket(
-        new CasTicketRequest(settings.groupEmailCasUrl, settings.groupEmailCasUsername, settings.groupEmailCasPassword)
+        new CasTicketRequest(groupEmailerSettings.groupEmailCasUrl, groupEmailerSettings.groupEmailCasUsername, groupEmailerSettings.groupEmailCasPassword)
       )
 
       ticketRequest match {
         case Some(casTicket) => {
-          val sessionRequest = DefaultHttpClient.httpGet(settings.groupEmailSessionUrl).param("ticket", casTicket)
+          val sessionRequest = DefaultHttpClient.httpGet(groupEmailerSettings.groupEmailSessionUrl).param("ticket", casTicket)
           for {
             setCookieHeader <- {
               val responseWithHeaders: (Int, Map[String, List[String]], String) = sessionRequest.responseWithHeaders()
@@ -78,5 +77,3 @@ trait GroupEmailComponent {
     }
   }
 }
-
-
