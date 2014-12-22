@@ -1,4 +1,4 @@
-package fi.sade.vm.groupemailer
+package fi.vm.sade.groupemailer
 
 trait GroupEmailService {
   def send(email: GroupEmail): Option[String]

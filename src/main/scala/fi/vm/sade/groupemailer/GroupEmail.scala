@@ -1,4 +1,4 @@
-package fi.sade.vm.groupemailer
+package fi.vm.sade.groupemailer
 
 case class GroupEmail(recipient: List[Recipient], email: EmailInfo)
 case class Recipient(oid: Option[String], email: String, languageCode: String, recipientReplacements: List[Replacement], oidType: Option[String] = Some("opiskelija"))

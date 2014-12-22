@@ -1,4 +1,4 @@
-package fi.sade.vm.groupemailer
+package fi.vm.sade.groupemailer
 
 import com.typesafe.config._
 

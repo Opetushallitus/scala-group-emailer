@@ -1,4 +1,4 @@
-package fi.sade.vm.groupemailer
+package fi.vm.sade.groupemailer
 
 import fi.vm.sade.security.cas.{CasTicketRequest, CasClient, CasConfig}
 import fi.vm.sade.utils.http.DefaultHttpClient
