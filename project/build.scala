@@ -27,7 +27,7 @@ object ScalaGroupEmailerBuild extends Build {
       resolvers += "oph-sade-artifactory-snapshots" at artifactory + "/oph-sade-snapshot-local",
       parallelExecution in Test := false,
       libraryDependencies ++= Seq(
-        "fi.vm.sade" %% "scala-security" % "0.1.0-SNAPSHOT"
+        "fi.vm.sade" %% "scala-utils" % "0.1.0-SNAPSHOT"
       ),
       credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
       publishTo := {

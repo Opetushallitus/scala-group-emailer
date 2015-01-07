@@ -1,6 +1,6 @@
 package fi.vm.sade.groupemailer
 
-import fi.vm.sade.security.cas.{CasTicketRequest, CasClient, CasConfig}
+import fi.vm.sade.utils.cas.{CasTicketRequest, CasClient, CasConfig}
 import fi.vm.sade.utils.http.DefaultHttpClient
 import fi.vm.sade.utils.slf4j.Logging
 import org.json4s.jackson.JsonMethods.parse
