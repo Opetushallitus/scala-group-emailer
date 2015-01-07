@@ -1,5 +1,7 @@
 package fi.vm.sade.groupemailer
 
+import java.util.concurrent.atomic.AtomicReference
+
 import fi.vm.sade.utils.cas.{CasClient, CasConfig, CasTicketRequest}
 import fi.vm.sade.utils.http.DefaultHttpClient
 import fi.vm.sade.utils.slf4j.Logging
@@ -13,13 +15,14 @@ trait GroupEmailComponent {
 
   class RemoteGroupEmailService(groupEmailerSettings: GroupEmailerSettings) extends GroupEmailService with JsonFormats with Logging {
     case class Session(jsessionid: String, created: DateTime)
-    private var session: Option[Session] = None
+    private val cachedSession: AtomicReference[Option[Session]] = new AtomicReference[Option[Session]](None)
     private val jsessionPattern = """(^JSESSIONID=[^;]+)""".r
     private lazy val casClient = new CasClient(new CasConfig(groupEmailerSettings.casUrl))
     private val httpOptions = Seq(HttpOptions.connTimeout(10000), HttpOptions.readTimeout(90000))
+    private val SessionTimeout: Int = 12
 
     def send(email: GroupEmail): Option[String] = {
-      sessionRequest match {
+      withSession {
         case Some(session) => {
           val groupEmailRequest = DefaultHttpClient.httpPost(groupEmailerSettings.groupEmailServiceUrl, Some(Serialization.write(email)), httpOptions: _*)
             .header("Cookie", session.jsessionid)
@@ -43,6 +46,16 @@ trait GroupEmailComponent {
           None
         }
       }
+    }
+
+    private def withSession(block: Option[Session] => Option[String]) = {
+      cachedSession.get() match {
+        case Some(session) => {
+          if (session.created.plusHours(SessionTimeout).isBeforeNow) cachedSession.set(sessionRequest)
+        }
+        case _ => cachedSession.set(sessionRequest)
+      }
+      block(cachedSession.get())
     }
 
     private def sessionRequest: Option[Session] = {
