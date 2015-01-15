@@ -78,6 +78,11 @@ trait GroupEmailComponent {
         case _ => None
       }
     }
+
+    override def sendMailWithoutTemplate(email: HtmlEmail): Option[String] = {
+      Some("Not implemented")
+
+    }
   }
 
   class FakeGroupEmailService extends GroupEmailService with Logging with JsonFormats {
@@ -87,6 +92,12 @@ trait GroupEmailComponent {
       logger.info(s"Sending email: ${Serialization.write(email)}")
       lastEmailSize = email.recipient.size
       Some("Thank you for using fake group email service")
+    }
+
+    override def sendMailWithoutTemplate(htmlEmail: HtmlEmail) = {
+      logger.info(s"Sending email: ${Serialization.write(htmlEmail)}")
+      lastEmailSize = htmlEmail.emailMessage.to.size
+      Some("Thank you for using fake send mail without template service")
     }
   }
 }
