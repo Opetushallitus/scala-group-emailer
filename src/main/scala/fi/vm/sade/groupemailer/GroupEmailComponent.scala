@@ -21,10 +21,18 @@ trait GroupEmailComponent {
     private val httpOptions = Seq(HttpOptions.connTimeout(10000), HttpOptions.readTimeout(90000))
     private val SessionTimeout: Int = 12
 
-    def send(email: GroupEmail): Option[String] = {
+    override def send(groupEmail: GroupEmail): Option[String] = {
+      sendJson(groupEmail)
+    }
+
+    override def sendMailWithoutTemplate(htmlEmail: HtmlEmail): Option[String] = {
+      sendJson(htmlEmail)
+    }
+
+    private def sendJson(content: Content) = {
       withSession {
         case Some(session) => {
-          val groupEmailRequest = DefaultHttpClient.httpPost(groupEmailerSettings.groupEmailServiceUrl, Some(Serialization.write(email)), httpOptions: _*)
+          val groupEmailRequest = DefaultHttpClient.httpPost(groupEmailerSettings.groupEmailServiceUrl, Some(Serialization.write(content)), httpOptions: _*)
             .header("Cookie", session.jsessionid)
             .header("Content-type", "application/json")
 
@@ -77,11 +85,6 @@ trait GroupEmailComponent {
         }
         case _ => None
       }
-    }
-
-    override def sendMailWithoutTemplate(email: HtmlEmail): Option[String] = {
-      Some("Not implemented")
-
     }
   }
 
