@@ -25,7 +25,8 @@ trait GroupEmailComponent {
       sendJson(groupEmail)
     }
 
-    override def sendMailWithoutTemplate(htmlEmail: HtmlEmail): Option[String] = {
+    override def sendMailWithoutTemplate(htmlEmail: EmailData): Option[String] = {
+      logger.info("sendMailWithoutTemplate"+htmlEmail)
       sendJson(htmlEmail)
     }
 
@@ -97,9 +98,8 @@ trait GroupEmailComponent {
       Some("Thank you for using fake group email service")
     }
 
-    override def sendMailWithoutTemplate(htmlEmail: HtmlEmail) = {
+    override def sendMailWithoutTemplate(htmlEmail: EmailData) = {
       logger.info(s"Sending email: ${Serialization.write(htmlEmail)}")
-      lastEmailSize = htmlEmail.emailMessage.to.size
       Some("Thank you for using fake send mail without template service")
     }
   }
