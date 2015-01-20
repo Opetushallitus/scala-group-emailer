@@ -7,6 +7,6 @@ case class Recipient(oid: Option[String], email: String, languageCode: String, r
 case class EmailInfo(callingProcess: String, templateName: String)
 case class Replacement(name: String, value: String)
 
-case class EmailData(emailMessage: EmailMessage, recipient: List[EmailRecipient]) extends Content
-case class EmailMessage(callingProcess: String, from: String, subject: String, body: String, isHtml: Boolean = true)
-case class EmailRecipient(email: String, oid: String = null)
+case class EmailData(email: EmailMessage, recipient: List[EmailRecipient]) extends Content
+case class EmailMessage(callingProcess: String, from: String, subject: String, body: String, html: Boolean = true)
+case class EmailRecipient(email: String)
