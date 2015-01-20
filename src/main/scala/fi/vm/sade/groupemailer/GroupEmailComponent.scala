@@ -26,7 +26,7 @@ trait GroupEmailComponent {
     }
 
     override def sendMailWithoutTemplate(htmlEmail: EmailData): Option[String] = {
-      logger.info("sendMailWithoutTemplate"+htmlEmail)
+      logger.info("sendMailWithoutTemplate="+Serialization.write(htmlEmail))
       sendJson(htmlEmail)
     }
 

@@ -9,4 +9,4 @@ case class Replacement(name: String, value: String)
 
 case class EmailData(emailMessage: EmailMessage, recipient: List[EmailRecipient]) extends Content
 case class EmailMessage(callingProcess: String, from: String, subject: String, body: String, isHtml: Boolean = true)
-case class EmailRecipient(email: String)
+case class EmailRecipient(email: String, oid: String = null)
