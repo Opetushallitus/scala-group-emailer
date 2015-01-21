@@ -45,14 +45,12 @@ trait GroupEmailComponent {
               jobId
             }
             case _ => {
-              logger.error(s"Batch sending failed. Service failure.")
-              None
+              throw new IllegalStateException("Batch sending failed. Service failure.")
             }
           }
         }
         case _ => {
-          logger.error(s"Batch sending failed. Failed to get a CAS session going.")
-          None
+          throw new IllegalStateException("Batch sending failed. Failed to get a CAS session going.")
         }
       }
     }
