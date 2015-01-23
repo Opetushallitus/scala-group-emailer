@@ -58,31 +58,41 @@ trait GroupEmailComponent {
     private def withSession(block: Option[Session] => Option[String]) = {
       cachedSession.get() match {
         case Some(session) => {
-          if (session.created.plusHours(SessionTimeout).isBeforeNow) cachedSession.set(sessionRequest)
+          if (session.created.plusHours(SessionTimeout).isBeforeNow) cachedSession.set(requestSession)
         }
-        case _ => cachedSession.set(sessionRequest)
+        case _ => cachedSession.set(requestSession)
       }
       block(cachedSession.get())
     }
 
-    private def sessionRequest: Option[Session] = {
-      val ticketRequest = casClient.getServiceTicket(
+    private def requestSession: Option[Session] = {
+      val casTicket = casClient.getServiceTicket(
         new CasTicketRequest(groupEmailerSettings.groupEmailCasUrl, groupEmailerSettings.groupEmailCasUsername, groupEmailerSettings.groupEmailCasPassword)
       )
 
-      ticketRequest match {
+      casTicket match {
         case Some(casTicket) => {
           val sessionRequest = DefaultHttpClient.httpGet(groupEmailerSettings.groupEmailSessionUrl).param("ticket", casTicket)
-          for {
+          val cookie: Option[String] = for {
             setCookieHeader <- {
               val responseWithHeaders: (Int, Map[String, List[String]], String) = sessionRequest.responseWithHeaders()
               responseWithHeaders._2.get("Set-Cookie")
             }
             jsessionidCookie <- setCookieHeader.find(_.startsWith("JSESSIONID"))
             cookieString <- jsessionPattern.findFirstIn(jsessionidCookie)
-          } yield Session(cookieString, new DateTime)
+          } yield cookieString
+
+          cookie match {
+            case Some(cookieString) =>
+              Some(Session(cookieString, new DateTime))
+            case _ =>
+              logger.error("JSESSIONID missing")
+              None
+          }
         }
-        case _ => None
+        case _ =>
+          logger.error("Could not get CAS service ticket")
+          None
       }
     }
   }
