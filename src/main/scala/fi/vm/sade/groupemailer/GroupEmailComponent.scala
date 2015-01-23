@@ -3,7 +3,7 @@ package fi.vm.sade.groupemailer
 import java.util.concurrent.atomic.AtomicReference
 
 import fi.vm.sade.utils.cas.{CasClient, CasConfig, CasTicketRequest}
-import fi.vm.sade.utils.http.DefaultHttpClient
+import fi.vm.sade.utils.http.{HttpRequest, DefaultHttpClient}
 import fi.vm.sade.utils.slf4j.Logging
 import org.joda.time.DateTime
 import org.json4s.jackson.JsonMethods.parse
@@ -71,28 +71,27 @@ trait GroupEmailComponent {
       )
 
       casTicket match {
-        case Some(casTicket) => {
-          val sessionRequest = DefaultHttpClient.httpGet(groupEmailerSettings.groupEmailSessionUrl).param("ticket", casTicket)
-          val cookie: Option[String] = for {
-            setCookieHeader <- {
-              val responseWithHeaders: (Int, Map[String, List[String]], String) = sessionRequest.responseWithHeaders()
-              responseWithHeaders._2.get("Set-Cookie")
-            }
+        case Some(ticket) => {
+          val sessionRequest = DefaultHttpClient.httpGet(groupEmailerSettings.groupEmailSessionUrl).param("ticket", ticket)
+          for {
+            setCookieHeader <- extractSetCookieHeader(sessionRequest)
             jsessionidCookie <- setCookieHeader.find(_.startsWith("JSESSIONID"))
             cookieString <- jsessionPattern.findFirstIn(jsessionidCookie)
-          } yield cookieString
-
-          cookie match {
-            case Some(cookieString) =>
-              Some(Session(cookieString, new DateTime))
-            case _ =>
-              logger.error("JSESSIONID missing")
-              None
-          }
+          } yield Session(cookieString, new DateTime)
         }
         case _ =>
           logger.error("Could not get CAS service ticket")
           None
+      }
+    }
+
+    def extractSetCookieHeader(sessionRequest: HttpRequest): Option[List[String]] = {
+      sessionRequest.responseWithHeaders() match {
+        case (status, headers, _) if status >= 200 && status < 300 => headers.get("Set-Cookie")
+        case (status, _, body) => {
+          logger.error(s"Failed session request to ${groupEmailerSettings.groupEmailSessionUrl}. Response status was: $status. Server replied: $body")
+          None
+        }
       }
     }
   }
