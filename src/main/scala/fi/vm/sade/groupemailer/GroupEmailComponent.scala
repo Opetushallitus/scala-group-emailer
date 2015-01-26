@@ -106,8 +106,7 @@ trait GroupEmailComponent {
     }
 
     override def sendMailWithoutTemplate(htmlEmail: EmailData) = {
-      logger.info(s"Sending email: ${Serialization.write(htmlEmail)}")
-      Some("Thank you for using fake send mail without template service")
+      Some(Serialization.write(htmlEmail)))
     }
   }
 }
