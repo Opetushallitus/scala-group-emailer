@@ -106,7 +106,7 @@ trait GroupEmailComponent {
     }
 
     override def sendMailWithoutTemplate(htmlEmail: EmailData) = {
-      Some(Serialization.write(htmlEmail)))
+      Some(Serialization.write(htmlEmail))
     }
   }
 }
