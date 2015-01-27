@@ -26,7 +26,6 @@ trait GroupEmailComponent {
     }
 
     override def sendMailWithoutTemplate(htmlEmail: EmailData): Option[String] = {
-      logger.info("sendMailWithoutTemplate="+Serialization.write(htmlEmail))
       sendJson(htmlEmail)
     }
 
@@ -37,7 +36,7 @@ trait GroupEmailComponent {
             .header("Cookie", session.jsessionid)
             .header("Content-type", "application/json")
 
-          logger.info(s"Sending email to ${groupEmailerSettings.groupEmailServiceUrl}")
+          logger.info(s"Sending ${content.batchSize} emails to ${groupEmailerSettings.groupEmailServiceUrl}")
           groupEmailRequest.response() match {
             case Some(json) => {
               val jobId = (parse(json) \ "id").extractOpt[String]
@@ -100,12 +99,13 @@ trait GroupEmailComponent {
     private var lastEmailSize = 0
     def getLastEmailSize = lastEmailSize
     override def send(email: GroupEmail): Option[String] = {
-      logger.info(s"Sending email: ${Serialization.write(email)}")
+      logger.info(s"send GroupEmail: ${Serialization.write(email)}")
       lastEmailSize = email.recipient.size
       Some("Thank you for using fake group email service")
     }
 
     override def sendMailWithoutTemplate(htmlEmail: EmailData) = {
+      logger.info(s"sendMailWithoutTemplate EmailData: ${Serialization.write(htmlEmail)}")
       Some(Serialization.write(htmlEmail))
     }
   }
