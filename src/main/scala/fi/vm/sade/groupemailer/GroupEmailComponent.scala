@@ -37,19 +37,21 @@ trait GroupEmailComponent {
             .header("Content-type", "application/json")
 
           logger.info(s"Sending ${content.batchSize} emails to ${groupEmailerSettings.groupEmailServiceUrl}")
-          groupEmailRequest.response() match {
-            case Some(json) => {
-              val jobId = (parse(json) \ "id").extractOpt[String]
-              logger.info(s"Batch sent successfully, jobId: $jobId")
+          groupEmailRequest.responseWithHeaders() match {
+            case (status, _, body) if status >= 200 && status < 300 => {
+              val jobId = (parse(body) \ "id").extractOpt[String]
+              logger.info(s"Group email sent successfully, jobId: $jobId")
               jobId
             }
-            case _ => {
-              throw new IllegalStateException("Batch sending failed. Service failure.")
+            case (status, _, body) => {
+              cachedSession.set(None)
+              throw new IllegalStateException(s"Group smail sending failed to ${groupEmailerSettings.groupEmailServiceUrl}. Response status was: $status. Server replied: $body")
             }
           }
         }
         case _ => {
-          throw new IllegalStateException("Batch sending failed. Failed to get a CAS session going.")
+          cachedSession.set(None)
+          throw new IllegalStateException("Group email sending failed. Failed to get a CAS session going.")
         }
       }
     }
