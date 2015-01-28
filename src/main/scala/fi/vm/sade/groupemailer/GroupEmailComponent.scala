@@ -75,8 +75,7 @@ trait GroupEmailComponent {
         case Some(ticket) => {
           val sessionRequest = DefaultHttpClient.httpGet(groupEmailerSettings.groupEmailSessionUrl).param("ticket", ticket)
           for {
-            setCookieHeader <- extractSetCookieHeader(sessionRequest)
-            jsessionidCookie <- setCookieHeader.find(_.startsWith("JSESSIONID"))
+            jsessionidCookie <- extractSetCookieHeader(sessionRequest) if jsessionidCookie.startsWith("JSESSIONID")
             cookieString <- jsessionPattern.findFirstIn(jsessionidCookie)
           } yield Session(cookieString, new DateTime)
         }
@@ -86,7 +85,7 @@ trait GroupEmailComponent {
       }
     }
 
-    def extractSetCookieHeader(sessionRequest: HttpRequest): Option[List[String]] = {
+    def extractSetCookieHeader(sessionRequest: HttpRequest): Option[String] = {
       sessionRequest.responseWithHeaders() match {
         case (status, headers, _) if status >= 200 && status < 300 => headers.get("Set-Cookie")
         case (status, _, body) => {
