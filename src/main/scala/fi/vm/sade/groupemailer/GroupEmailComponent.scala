@@ -29,7 +29,7 @@ trait GroupEmailComponent {
       sendJson(htmlEmail)
     }
 
-    private def sendJson(content: Content) = {
+    private def sendJson(content: Content, retryOnce: Boolean = true): Option[String] = {
       withSession {
         case Some(session) => {
           val groupEmailRequest = DefaultHttpClient.httpPost(groupEmailerSettings.groupEmailServiceUrl, Some(Serialization.write(content)), httpOptions: _*)
@@ -38,10 +38,15 @@ trait GroupEmailComponent {
 
           logger.info(s"Sending ${content.batchSize} emails to ${groupEmailerSettings.groupEmailServiceUrl}")
           groupEmailRequest.responseWithHeaders() match {
-            case (status, _, body) if status >= 200 && status < 300 => {
+            case (status, _, body) if (status >= 200 && status < 300) => {
               val jobId = (parse(body) \ "id").extractOpt[String]
               logger.info(s"Group email sent successfully, jobId: $jobId")
               jobId
+            }
+            case (status, _, body) if (status == 302 && retryOnce) => {
+              cachedSession.set(None)
+              logger.warn("Session timeout, retry session init")
+              sendJson(content, false)
             }
             case (status, _, body) => {
               cachedSession.set(None)
