@@ -80,9 +80,9 @@ trait GroupEmailComponent {
         case Some(ticket) => {
           val sessionRequest = DefaultHttpClient.httpGet(groupEmailerSettings.groupEmailSessionUrl).param("ticket", ticket)
           for {
-            jsessionidCookie <- extractSetCookieHeader(sessionRequest) if jsessionidCookie.startsWith("JSESSIONID")
-            cookieString <- jsessionPattern.findFirstIn(jsessionidCookie)
-          } yield Session(cookieString, new DateTime)
+            setCookieHeader <- extractSetCookieHeader(sessionRequest)
+            jsessionidValue <- extractJsessionidValue(setCookieHeader)
+          } yield Session(jsessionidValue, new DateTime)
         }
         case _ =>
           logger.error("Could not get CAS service ticket")
@@ -90,9 +90,23 @@ trait GroupEmailComponent {
       }
     }
 
+    def extractJsessionidValue(setCookieHeader: String): Option[String] = {
+      val jsessionidCookie = setCookieHeader.split(',').toList.map(_.trim).find(_.startsWith("JSESSIONID")).flatMap(jsessionPattern.findFirstIn(_))
+      if(jsessionidCookie.isEmpty) {
+        logger.error(s"Failed to find JSESSIONID value from Set-Cookie header '${setCookieHeader}' from response of ${groupEmailerSettings.groupEmailSessionUrl}")
+      }
+      jsessionidCookie
+    }
+
     def extractSetCookieHeader(sessionRequest: HttpRequest): Option[String] = {
       sessionRequest.responseWithHeaders() match {
-        case (status, headers, _) if status >= 200 && status < 300 => headers.get("Set-Cookie")
+        case (status, headers, body) if status >= 200 && status < 300 => {
+          val headerValue = headers.get("Set-Cookie")
+          if(headerValue.isEmpty) {
+            logger.error(s"Got no Set-Cookie header from ${groupEmailerSettings.groupEmailSessionUrl}")
+          }
+          headerValue
+        }
         case (status, _, body) => {
           logger.error(s"Failed session request to ${groupEmailerSettings.groupEmailSessionUrl}. Response status was: $status. Server replied: $body")
           None
