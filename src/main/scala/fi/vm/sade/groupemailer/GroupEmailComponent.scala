@@ -20,7 +20,6 @@ trait GroupEmailComponent {
     private val httpClient = new CasAuthenticatingClient(casClient, casParams, blazeHttpClient)
     private val callerIdHeader = Header("Caller-Id", calledId)
     private val emailServiceUrl = uriFromString(groupEmailerSettings.groupEmailServiceUrl)
-    private val emailSessionUrl = uriFromString(groupEmailerSettings.groupEmailSessionUrl)
 
     def uriFromString(url: String): Uri = {
       Uri.fromString(url).toOption.get
