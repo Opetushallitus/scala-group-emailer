@@ -46,8 +46,6 @@ trait GroupEmailComponent {
     }
 
     private def sendJson[RequestType <: Content](content: RequestType, encoder: EntityEncoder[RequestType]): Option[String] = {
-      //ensure that session is alive
-      httpClient.apply(Request(uri = emailSessionUrl, headers = Headers(callerIdHeader))).run
       val request: Request = Request(
         method = Method.POST,
         uri = emailServiceUrl,
