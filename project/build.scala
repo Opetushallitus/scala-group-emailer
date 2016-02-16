@@ -4,9 +4,9 @@ import sbt._
 object ScalaGroupEmailerBuild extends Build {
   val Organization = "fi.vm.sade"
   val Name = "scala-group-emailer"
-  val Version = "0.1.0"
-  val JavaVersion = "1.7"
-  val ScalaVersion = "2.11.1"
+  val Version = "0.2.0-SNAPSHOT"
+  val JavaVersion = "1.8"
+  val ScalaVersion = "2.11.7"
   val TomcatVersion = "7.0.22"
   val artifactory = "https://artifactory.oph.ware.fi/artifactory"
 
@@ -31,7 +31,9 @@ object ScalaGroupEmailerBuild extends Build {
       resolvers += "oph-sade-artifactory-snapshots" at artifactory + "/oph-sade-snapshot-local",
       parallelExecution in Test := false,
       libraryDependencies ++= Seq(
-        "fi.vm.sade" %% "scala-utils" % "0.1.0"
+        "fi.vm.sade" %% "scala-utils" % "0.3.1-SNAPSHOT",
+        "fi.vm.sade" %% "scala-cas" % "0.3.1-SNAPSHOT",
+        "org.http4s" %% "http4s-blaze-client" % "0.10.0"
       ),
       credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
       publishTo := {

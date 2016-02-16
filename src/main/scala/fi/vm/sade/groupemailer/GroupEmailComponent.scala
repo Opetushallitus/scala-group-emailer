@@ -1,25 +1,31 @@
 package fi.vm.sade.groupemailer
 
-import java.util.concurrent.atomic.AtomicReference
-
-import fi.vm.sade.utils.cas.{CasClient, CasConfig, CasTicketRequest}
-import fi.vm.sade.utils.http.{HttpRequest, DefaultHttpClient}
+import fi.vm.sade.utils.cas.{CasParams, CasAuthenticatingClient, CasClient}
+import org.http4s._
+import org.http4s.client.blaze
+import org.http4s.client.blaze.BlazeClient
 import fi.vm.sade.utils.slf4j.Logging
-import org.joda.time.DateTime
+import org.json4s.JsonAST.{JString, JField, JObject}
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.jackson.Serialization
-import scalaj.http.HttpOptions
+
+import scalaz.concurrent.Task
 
 trait GroupEmailComponent {
   val groupEmailService: GroupEmailService
 
-  class RemoteGroupEmailService(groupEmailerSettings: GroupEmailerSettings) extends GroupEmailService with JsonFormats with Logging {
-    case class Session(jsessionid: String, created: DateTime)
-    private val cachedSession: AtomicReference[Option[Session]] = new AtomicReference[Option[Session]](None)
-    private val jsessionPattern = """(^JSESSIONID=[^;]+)""".r
-    private lazy val casClient = new CasClient(new CasConfig(groupEmailerSettings.casUrl))
-    private val httpOptions = Seq(HttpOptions.connTimeout(10000), HttpOptions.readTimeout(90000))
-    private val SessionTimeout: Int = 12
+  class RemoteGroupEmailService(groupEmailerSettings: GroupEmailerSettings, calledId: String) extends GroupEmailService with JsonFormats with Logging {
+    private val blazeHttpClient: BlazeClient = blaze.defaultClient
+    private val casClient = new CasClient(groupEmailerSettings.casUrl, blazeHttpClient)
+    private val casParams = CasParams(groupEmailerSettings.groupEmailCasUrl, groupEmailerSettings.groupEmailCasUsername, groupEmailerSettings.groupEmailCasPassword)
+    private val httpClient = new CasAuthenticatingClient(casClient, casParams, blazeHttpClient)
+    private val callerIdHeader = Header("Caller-Id", calledId)
+    private val jsonHeader = Header("Content-type", "application/json")
+    private val emailServiceUrl = uriFromString(groupEmailerSettings.groupEmailServiceUrl)
+
+    def uriFromString(url: String): Uri = {
+      Uri.fromString(url).toOption.get
+    }
 
     override def send(groupEmail: GroupEmail): Option[String] = {
       sendJson(groupEmail)
@@ -29,89 +35,37 @@ trait GroupEmailComponent {
       sendJson(htmlEmail)
     }
 
-    private def sendJson(content: Content, retryOnce: Boolean = true): Option[String] = {
-      withSession {
-        case Some(session) => {
-          val groupEmailRequest = DefaultHttpClient.httpPost(groupEmailerSettings.groupEmailServiceUrl, Some(Serialization.write(content)), httpOptions: _*)
-            .header("Cookie", session.jsessionid)
-            .header("Content-type", "application/json")
+    type Decode[ResultType] = (Int, String, Request) => ResultType
 
-          logger.info(s"Sending ${content.batchSize} emails to ${groupEmailerSettings.groupEmailServiceUrl}")
-          groupEmailRequest.responseWithHeaders() match {
-            case (status, _, body) if (status >= 200 && status < 300) => {
-              val jobId = (parse(body) \ "id").extractOpt[String]
-              logger.info(s"Group email sent successfully, jobId: $jobId")
-              jobId
-            }
-            case (status, _, body) if (status == 302 && retryOnce) => {
-              cachedSession.set(None)
-              logger.warn("Session timeout, retry session init")
-              sendJson(content, false)
-            }
-            case (status, _, body) => {
-              cachedSession.set(None)
-              throw new IllegalStateException(s"Group smail sending failed to ${groupEmailerSettings.groupEmailServiceUrl}. Response status was: $status. Server replied: $body")
-            }
-          }
-        }
-        case _ => {
-          cachedSession.set(None)
-          throw new IllegalStateException("Group email sending failed. Failed to get a CAS session going.")
-        }
+    private def runHttp[ResultType](request: Request, content: Content)(decoder: (Int, String, Request) => ResultType): Task[ResultType] = {
+      for {
+        response <- httpClient.apply(request.withBody(Serialization.write(content)))
+        text <- response.as[String]
+      } yield {
+        decoder(response.status.code, text, request)
       }
     }
 
-    private def withSession(block: Option[Session] => Option[String]) = {
-      cachedSession.get() match {
-        case Some(session) => {
-          if (session.created.plusHours(SessionTimeout).isBeforeNow) cachedSession.set(requestSession)
-        }
-        case _ => cachedSession.set(requestSession)
-      }
-      block(cachedSession.get())
-    }
-
-    private def requestSession: Option[Session] = {
-      val casTicket = casClient.getServiceTicket(
-        new CasTicketRequest(groupEmailerSettings.groupEmailCasUrl, groupEmailerSettings.groupEmailCasUsername, groupEmailerSettings.groupEmailCasPassword)
+    private def sendJson(content: Content): Option[String] = {
+      val request: Request = Request(
+        method = Method.POST,
+        uri = emailServiceUrl,
+        headers = Headers(callerIdHeader, jsonHeader)
       )
-
-      casTicket match {
-        case Some(ticket) => {
-          val sessionRequest = DefaultHttpClient.httpGet(groupEmailerSettings.groupEmailSessionUrl).param("ticket", ticket)
-          for {
-            setCookieHeader <- extractSetCookieHeader(sessionRequest)
-            jsessionidValue <- extractJsessionidValue(setCookieHeader)
-          } yield Session(jsessionidValue, new DateTime)
-        }
-        case _ =>
-          logger.error("Could not get CAS service ticket")
-          None
-      }
-    }
-
-    def extractJsessionidValue(setCookieHeader: String): Option[String] = {
-      val jsessionidCookie = setCookieHeader.split(',').toList.map(_.trim).find(_.startsWith("JSESSIONID")).flatMap(jsessionPattern.findFirstIn(_))
-      if(jsessionidCookie.isEmpty) {
-        logger.error(s"Failed to find JSESSIONID value from Set-Cookie header '${setCookieHeader}' from response of ${groupEmailerSettings.groupEmailSessionUrl}")
-      }
-      jsessionidCookie
-    }
-
-    def extractSetCookieHeader(sessionRequest: HttpRequest): Option[String] = {
-      sessionRequest.responseWithHeaders() match {
-        case (status, headers, body) if status >= 200 && status < 300 => {
-          val headerValue = headers.get("Set-Cookie")
-          if(headerValue.isEmpty) {
-            logger.error(s"Got no Set-Cookie header from ${groupEmailerSettings.groupEmailSessionUrl}")
+      def post(retryCount: Int = 0): Option[String] =
+        runHttp[Option[String]](request, content) {
+          case (200, resultString, _) =>
+            val jobId = (parse(resultString) \ "id").extractOpt[String]
+            logger.info(s"Group email sent successfully, jobId: $jobId")
+            jobId
+          case (status, _, body) if (retryCount == 0) => {
+            logger.warn("Session timeout, retry session init")
+            post(1)
           }
-          headerValue
-        }
-        case (status, _, body) => {
-          logger.error(s"Failed session request to ${groupEmailerSettings.groupEmailSessionUrl}. Response status was: $status. Server replied: $body")
-          None
-        }
-      }
+          case (code, resultString, uri) =>
+            throw new IllegalStateException(s"Group email sending failed to ${groupEmailerSettings.groupEmailServiceUrl}. Response status was: $code. Server replied: $resultString")
+        }.run
+      post()
     }
   }
 
