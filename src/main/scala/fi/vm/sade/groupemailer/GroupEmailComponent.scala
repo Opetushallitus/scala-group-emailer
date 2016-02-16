@@ -5,7 +5,6 @@ import org.http4s._
 import org.http4s.client.blaze
 import org.http4s.client.blaze.BlazeClient
 import fi.vm.sade.utils.slf4j.Logging
-import org.json4s.JsonAST.{JString, JField, JObject}
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.jackson.Serialization
 
@@ -20,41 +19,40 @@ trait GroupEmailComponent {
     private val casParams = CasParams(groupEmailerSettings.groupEmailCasUrl, groupEmailerSettings.groupEmailCasUsername, groupEmailerSettings.groupEmailCasPassword)
     private val httpClient = new CasAuthenticatingClient(casClient, casParams, blazeHttpClient)
     private val callerIdHeader = Header("Caller-Id", calledId)
-    private val jsonHeader = Header("Content-type", "application/json")
     private val emailServiceUrl = uriFromString(groupEmailerSettings.groupEmailServiceUrl)
 
     def uriFromString(url: String): Uri = {
       Uri.fromString(url).toOption.get
     }
-
+    
     override def send(groupEmail: GroupEmail): Option[String] = {
-      sendJson(groupEmail)
+      sendJson(groupEmail, Json4sHttp4s.json4sEncoderOf[GroupEmail])
     }
 
     override def sendMailWithoutTemplate(htmlEmail: EmailData): Option[String] = {
-      sendJson(htmlEmail)
+      sendJson(htmlEmail, Json4sHttp4s.json4sEncoderOf[EmailData])
     }
 
     type Decode[ResultType] = (Int, String, Request) => ResultType
 
-    private def runHttp[ResultType](request: Request, content: Content)(decoder: (Int, String, Request) => ResultType): Task[ResultType] = {
+    private def runHttp[RequestType <: Content, ResultType](request: Request, content: RequestType, encoder: EntityEncoder[RequestType])(decoder: (Int, String, Request) => ResultType): Task[ResultType] = {
       for {
-        response <- httpClient.apply(request.withBody(Serialization.write(content)))
+        response <- httpClient.apply(request.withBody(content)(encoder))
         text <- response.as[String]
       } yield {
         decoder(response.status.code, text, request)
       }
     }
 
-    private def sendJson(content: Content): Option[String] = {
+    private def sendJson[RequestType <: Content](content: RequestType, encoder: EntityEncoder[RequestType]): Option[String] = {
       val request: Request = Request(
         method = Method.POST,
         uri = emailServiceUrl,
-        headers = Headers(callerIdHeader, jsonHeader)
+        headers = Headers(callerIdHeader)
       )
       def post(retryCount: Int = 0): Option[String] =
-        runHttp[Option[String]](request, content) {
-          case (200, resultString, _) =>
+        runHttp[RequestType, Option[String]](request, content, encoder) {
+          case (200, resultString: String, _) =>
             val jobId = (parse(resultString) \ "id").extractOpt[String]
             logger.info(s"Group email sent successfully, jobId: $jobId")
             jobId
