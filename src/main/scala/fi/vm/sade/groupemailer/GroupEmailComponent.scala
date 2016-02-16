@@ -20,11 +20,12 @@ trait GroupEmailComponent {
     private val httpClient = new CasAuthenticatingClient(casClient, casParams, blazeHttpClient)
     private val callerIdHeader = Header("Caller-Id", calledId)
     private val emailServiceUrl = uriFromString(groupEmailerSettings.groupEmailServiceUrl)
+    private val emailSessionUrl = uriFromString(groupEmailerSettings.groupEmailSessionUrl)
 
     def uriFromString(url: String): Uri = {
       Uri.fromString(url).toOption.get
     }
-    
+
     override def send(groupEmail: GroupEmail): Option[String] = {
       sendJson(groupEmail, Json4sHttp4s.json4sEncoderOf[GroupEmail])
     }
@@ -56,8 +57,9 @@ trait GroupEmailComponent {
             val jobId = (parse(resultString) \ "id").extractOpt[String]
             logger.info(s"Group email sent successfully, jobId: $jobId")
             jobId
-          case (status, _, body) if (retryCount == 0) => {
+          case (403, _, body) if (retryCount == 0) => {
             logger.warn("Session timeout, retry session init")
+            httpClient.apply(Request(uri = emailSessionUrl, headers = Headers(callerIdHeader))).run
             post(1)
           }
           case (code, resultString, uri) =>
