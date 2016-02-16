@@ -46,22 +46,19 @@ trait GroupEmailComponent {
     }
 
     private def sendJson[RequestType <: Content](content: RequestType, encoder: EntityEncoder[RequestType]): Option[String] = {
+      //ensure that session is alive
+      httpClient.apply(Request(uri = emailSessionUrl, headers = Headers(callerIdHeader))).run
       val request: Request = Request(
         method = Method.POST,
         uri = emailServiceUrl,
         headers = Headers(callerIdHeader)
       )
-      def post(retryCount: Int = 0): Option[String] =
+      def post(): Option[String] =
         runHttp[RequestType, Option[String]](request, content, encoder) {
           case (200, resultString: String, _) =>
             val jobId = (parse(resultString) \ "id").extractOpt[String]
             logger.info(s"Group email sent successfully, jobId: $jobId")
             jobId
-          case (403, _, body) if (retryCount == 0) => {
-            logger.warn("Session timeout, retry session init")
-            httpClient.apply(Request(uri = emailSessionUrl, headers = Headers(callerIdHeader))).run
-            post(1)
-          }
           case (code, resultString, uri) =>
             throw new IllegalStateException(s"Group email sending failed to ${groupEmailerSettings.groupEmailServiceUrl}. Response status was: $code. Server replied: $resultString")
         }.run
