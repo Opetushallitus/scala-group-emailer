@@ -4,7 +4,7 @@ import sbt._
 object ScalaGroupEmailerBuild extends Build {
   val Organization = "fi.vm.sade"
   val Name = "scala-group-emailer"
-  val Version = "feature-vastaanottomaili-SNAPSHOT"
+  val Version = "0.2.0-SNAPSHOT"
   val JavaVersion = "1.8"
   val ScalaVersion = "2.11.7"
   val TomcatVersion = "7.0.22"
