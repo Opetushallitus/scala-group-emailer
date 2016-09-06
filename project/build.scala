@@ -33,7 +33,7 @@ object ScalaGroupEmailerBuild extends Build {
       libraryDependencies ++= Seq(
         "fi.vm.sade" %% "scala-utils" % "0.3.1-SNAPSHOT",
         "fi.vm.sade" %% "scala-cas" % "0.3.1-SNAPSHOT",
-        "org.http4s" %% "http4s-blaze-client" % "0.10.0"
+        "org.http4s" %% "http4s-blaze-client" % "0.10.1"
       ),
       credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
       publishTo := {
