@@ -1,23 +1,22 @@
 package fi.vm.sade.groupemailer
 
 import fi.vm.sade.utils.cas.{CasParams, CasAuthenticatingClient, CasClient}
+import fi.vm.sade.utils.slf4j.Logging
 import org.http4s._
 import org.http4s.client.blaze
-import org.http4s.client.blaze.BlazeClient
-import fi.vm.sade.utils.slf4j.Logging
+import org.http4s.client.Client
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.jackson.Serialization
-
 import scalaz.concurrent.Task
 
 trait GroupEmailComponent {
   val groupEmailService: GroupEmailService
 
   class RemoteGroupEmailService(groupEmailerSettings: GroupEmailerSettings, calledId: String) extends GroupEmailService with JsonFormats with Logging {
-    private val blazeHttpClient: BlazeClient = blaze.defaultClient
+    private val blazeHttpClient: Client = blaze.defaultClient
     private val casClient = new CasClient(groupEmailerSettings.casUrl, blazeHttpClient)
     private val casParams = CasParams(groupEmailerSettings.groupEmailCasUrl, groupEmailerSettings.groupEmailCasUsername, groupEmailerSettings.groupEmailCasPassword)
-    private val httpClient = new CasAuthenticatingClient(casClient, casParams, blazeHttpClient)
+    private val authenticatingClient = new CasAuthenticatingClient(casClient, casParams, blazeHttpClient, "scala-group-emailer")
     private val callerIdHeader = Header("Caller-Id", calledId)
     private val emailServiceUrl = uriFromString(groupEmailerSettings.groupEmailServiceUrl)
 
@@ -37,7 +36,7 @@ trait GroupEmailComponent {
 
     private def runHttp[RequestType <: Content, ResultType](request: Request, content: RequestType, encoder: EntityEncoder[RequestType])(decoder: (Int, String, Request) => ResultType): Task[ResultType] = {
       for {
-        response <- httpClient.apply(request.withBody(content)(encoder))
+        response <- authenticatingClient.httpClient.toHttpService =<< request.withBody(content)(encoder)
         text <- response.as[String]
       } yield {
         decoder(response.status.code, text, request)
@@ -58,7 +57,7 @@ trait GroupEmailComponent {
             jobId
           case (code, resultString, uri) =>
             throw new IllegalStateException(s"Group email sending failed to ${groupEmailerSettings.groupEmailServiceUrl}. Response status was: $code. Server replied: $resultString")
-        }.run
+        }.unsafePerformSync
       post()
     }
   }

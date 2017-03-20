@@ -1,13 +1,22 @@
 package fi.vm.sade.groupemailer
 
-import fi.vm.sade.utils.json4s.GenericJsonFormats
 import org.json4s._
+import org.json4s.ext.JodaTimeSerializers
 import org.json4s.jackson.Serialization
 import org.http4s.{MediaType, Charset, EntityEncoder}
 import org.http4s.headers.`Content-Type`
 
 trait JsonFormats {
-  implicit val jsonFormats: Formats = GenericJsonFormats.genericFormats
+  // Using GenericJsonFormats.genericFormats causes AbstractMethodError when using this library so the implementation is copied here
+  private val genericFormats: Formats =  new DefaultFormats {
+    override def dateFormatter = {
+      val format = super.dateFormatter
+      format.setTimeZone(DefaultFormats.UTC)
+      format
+    }
+  } ++ JodaTimeSerializers.all
+
+  implicit val jsonFormats: Formats = genericFormats
 }
 
 object Json4sHttp4s {
