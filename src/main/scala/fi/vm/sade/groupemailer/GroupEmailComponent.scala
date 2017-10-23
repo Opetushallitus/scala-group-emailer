@@ -1,12 +1,16 @@
 package fi.vm.sade.groupemailer
 
-import fi.vm.sade.utils.cas.{CasParams, CasAuthenticatingClient, CasClient}
+import java.util.concurrent.TimeUnit
+
+import fi.vm.sade.utils.cas.{CasAuthenticatingClient, CasClient, CasParams}
 import fi.vm.sade.utils.slf4j.Logging
 import org.http4s._
 import org.http4s.client.blaze
 import org.http4s.client.Client
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.jackson.Serialization
+
+import scala.concurrent.duration.Duration
 import scalaz.concurrent.Task
 
 trait GroupEmailComponent {
@@ -16,7 +20,13 @@ trait GroupEmailComponent {
     private val blazeHttpClient: Client = blaze.defaultClient
     private val casClient = new CasClient(groupEmailerSettings.casUrl, blazeHttpClient)
     private val casParams = CasParams(groupEmailerSettings.groupEmailCasUrl, groupEmailerSettings.groupEmailCasUsername, groupEmailerSettings.groupEmailCasPassword)
-    private val authenticatingClient = new CasAuthenticatingClient(casClient, casParams, blazeHttpClient, "scala-group-emailer")
+    private val authenticatingClient = CasAuthenticatingClient(
+      casClient,
+      casParams,
+      blazeHttpClient,
+      Some(calledId),
+      "JSESSIONID"
+    )
     private val callerIdHeader = Header("Caller-Id", calledId)
     private val emailServiceUrl = uriFromString(groupEmailerSettings.groupEmailServiceUrl)
 
@@ -36,7 +46,7 @@ trait GroupEmailComponent {
 
     private def runHttp[RequestType <: Content, ResultType](request: Request, content: RequestType, encoder: EntityEncoder[RequestType])(decoder: (Int, String, Request) => ResultType): Task[ResultType] = {
       for {
-        response <- authenticatingClient.httpClient.toHttpService =<< request.withBody(content)(encoder)
+        response <- authenticatingClient.toHttpService =<< request.withBody(content)(encoder)
         text <- response.as[String]
       } yield {
         decoder(response.status.code, text, request)
@@ -49,16 +59,15 @@ trait GroupEmailComponent {
         uri = emailServiceUrl,
         headers = Headers(callerIdHeader)
       )
-      def post(): Option[String] =
-        runHttp[RequestType, Option[String]](request, content, encoder) {
-          case (200, resultString: String, _) =>
-            val jobId = (parse(resultString) \ "id").extractOpt[String]
-            logger.info(s"Group email sent successfully, jobId: $jobId")
-            jobId
-          case (code, resultString, uri) =>
-            throw new IllegalStateException(s"Group email sending failed to ${groupEmailerSettings.groupEmailServiceUrl}. Response status was: $code. Server replied: $resultString")
-        }.unsafePerformSync
-      post()
+
+      runHttp[RequestType, Option[String]](request, content, encoder) {
+        case (200, resultString: String, _) =>
+          val jobId = (parse(resultString) \ "id").extractOpt[String]
+          logger.info(s"Group email sent successfully, jobId: $jobId")
+          jobId
+        case (code, resultString, uri) =>
+          throw new IllegalStateException(s"Group email sending failed to ${groupEmailerSettings.groupEmailServiceUrl}. Response status was: $code. Server replied: $resultString")
+      }.runFor(Duration(10, TimeUnit.SECONDS))
     }
   }
 
