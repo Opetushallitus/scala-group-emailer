@@ -4,7 +4,7 @@ import sbt._
 object ScalaGroupEmailerBuild extends Build {
   val Organization = "fi.vm.sade"
   val Name = "scala-group-emailer"
-  val Version = "0.4.0-SNAPSHOT"
+  val Version = "0.4.1-SNAPSHOT"
   val JavaVersion = "1.8"
   val ScalaVersion = "2.11.7"
   val TomcatVersion = "7.0.22"
@@ -31,7 +31,7 @@ object ScalaGroupEmailerBuild extends Build {
       resolvers += "oph-sade-artifactory-snapshots" at artifactory + "/oph-sade-snapshot-local",
       parallelExecution in Test := false,
       libraryDependencies ++= Seq(
-        "fi.vm.sade" %% "scala-utils" % "0.5.0-SNAPSHOT",
+        "fi.vm.sade" %% "scala-utils" % "0.5.1-SNAPSHOT",
         "fi.vm.sade" %% "scala-json" % "0.4.0-SNAPSHOT",
         "fi.vm.sade" %% "scala-logging" % "0.4.0-SNAPSHOT",
         "fi.vm.sade" %% "scala-cas" % "0.5.0-SNAPSHOT",
