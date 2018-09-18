@@ -8,11 +8,14 @@ object ScalaGroupEmailerBuild extends Build {
   val JavaVersion = "1.8"
   val ScalaVersion = "2.11.7"
   val TomcatVersion = "7.0.22"
-  val artifactory = "https://artifactory.oph.ware.fi/artifactory"
+  val artifactory = "https://artifactory.opintopolku.fi/artifactory"
 
   if(!System.getProperty("java.version").startsWith(JavaVersion)) {
     throw new IllegalStateException("Wrong java version (required " + JavaVersion + "): " + System.getProperty("java.version"))
   }
+
+  System.out.println("ARTIFACTORY_USERNAME: " + System.getenv().get("ARTIFACTORY_USERNAME"))
+  System.out.println("ARTIFACTORY_PASSWORD: " + System.getenv().get("ARTIFACTORY_PASSWORD"))
 
   lazy val project = Project (
     Name,
@@ -41,7 +44,12 @@ object ScalaGroupEmailerBuild extends Build {
         "org.json4s" %% "json4s-jackson" % "3.5.0",
         "com.typesafe" % "config" % "1.2.1"
       ),
-      credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
+      credentials += Credentials(
+        "Artifactory Realm",
+        "artifactory.opintopolku.fi",
+        System.getenv().get("ARTIFACTORY_USERNAME"),
+        System.getenv().get("ARTIFACTORY_PASSWORD")
+      ),
       publishTo := {
         if (Version.trim.endsWith("SNAPSHOT"))
           Some("snapshots" at artifactory + "/oph-sade-snapshot-local;build.timestamp=" + new java.util.Date().getTime)

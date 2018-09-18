@@ -1,0 +1,31 @@
+sudo: required
+
+language: scala
+
+jdk:
+- oraclejdk8
+
+cache:
+  directories:
+  - $HOME/.ivy2
+
+env:
+  global:
+  # ARTIFACTORY_USERNAME
+  - secure: "NKGc64kcgQbIVEKpbvyDzPi155Y97CG7PQ9P/kAnrI9YwiRuiaUFOYF21TsDKtjHkzGPQMWFhdh5zb04iMTv22kDcAZmEw33wi/T9R4PX1EFSr7BPZmQVgJdXvEmi5NUbcyIaId/8DAjJ+BvBTVnefWtzfqCRCfMWLRb1G5ghRc="
+  # ARTIFACTORY_PASSWORD
+  - secure: "XbteryW1Waq95CuwwMhNplgj7z5FAd4k2i+Sa+Wr5CXZTmT8P2Iz6rgCSk78ufxbf2Jw+DDy8R5PXrnsqDrtflu3zKICS6b6BvfgPQFtGu5vTTIrrTFs/WswCog1qXU4X6Mepsn/a+7qviaUfzhVHxwxj7AJrLI+DU0i89uV4WE="
+
+install:
+- git clone https://github.com/Opetushallitus/ci-tools.git
+- source ci-tools/common/setup-tools.sh
+
+script:
+- sbt -batch clean test
+
+deploy:
+  provider: script
+  script: sbt -batch publish
+  skip_cleanup: true
+  on:
+    branch: master
