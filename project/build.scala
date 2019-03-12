@@ -14,9 +14,6 @@ object ScalaGroupEmailerBuild extends Build {
     throw new IllegalStateException("Wrong java version (required " + JavaVersion + "): " + System.getProperty("java.version"))
   }
 
-  System.out.println("ARTIFACTORY_USERNAME: " + System.getenv().get("ARTIFACTORY_USERNAME"))
-  System.out.println("ARTIFACTORY_PASSWORD: " + System.getenv().get("ARTIFACTORY_PASSWORD"))
-
   lazy val project = Project (
     Name,
     file("."),
