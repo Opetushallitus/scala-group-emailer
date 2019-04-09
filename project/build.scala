@@ -4,7 +4,7 @@ import sbt._
 object ScalaGroupEmailerBuild extends Build {
   val Organization = "fi.vm.sade"
   val Name = "scala-group-emailer"
-  val Version = "0.4.1-SNAPSHOT"
+  val Version = "0.5.0-SNAPSHOT"
   val JavaVersion = "1.8"
   val ScalaVersion = "2.11.7"
   val TomcatVersion = "7.0.22"
@@ -34,7 +34,7 @@ object ScalaGroupEmailerBuild extends Build {
         "fi.vm.sade" %% "scala-utils" % "0.5.1-SNAPSHOT",
         "fi.vm.sade" %% "scala-json" % "0.4.0-SNAPSHOT",
         "fi.vm.sade" %% "scala-logging" % "0.4.0-SNAPSHOT",
-        "fi.vm.sade" %% "scala-cas" % "0.5.0-SNAPSHOT",
+        "fi.vm.sade" %% "scala-cas" % "0.7.0-SNAPSHOT",
         "org.http4s" %% "http4s-blaze-client" % "0.15.8",
         "org.json4s" %% "json4s-core" % "3.5.0",
         "org.json4s" %% "json4s-ext" % "3.5.0",
