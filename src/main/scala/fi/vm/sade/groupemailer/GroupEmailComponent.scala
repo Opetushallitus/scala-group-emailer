@@ -16,7 +16,7 @@ import scalaz.concurrent.Task
 trait GroupEmailComponent {
   val groupEmailService: GroupEmailService
 
-  class RemoteGroupEmailService(groupEmailerSettings: GroupEmailerSettings, calledId: String) extends GroupEmailService with JsonFormats with Logging {
+  class RemoteGroupEmailService(groupEmailerSettings: GroupEmailerSettings, callerId: String) extends GroupEmailService with JsonFormats with Logging {
     private val blazeHttpClient: Client = blaze.defaultClient
     private val casClient = new CasClient(groupEmailerSettings.casUrl, blazeHttpClient)
     private val casParams = CasParams(groupEmailerSettings.groupEmailCasUrl, groupEmailerSettings.groupEmailCasUsername, groupEmailerSettings.groupEmailCasPassword)
@@ -24,10 +24,10 @@ trait GroupEmailComponent {
       casClient,
       casParams,
       blazeHttpClient,
-      Some(calledId),
+      callerId,
       "JSESSIONID"
     )
-    private val callerIdHeader = Header("Caller-Id", calledId)
+    private val callerIdHeader = Header("Caller-Id", callerId)
     private val emailServiceUrl = uriFromString(groupEmailerSettings.groupEmailServiceUrl)
 
     def uriFromString(url: String): Uri = {
