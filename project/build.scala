@@ -34,7 +34,7 @@ object ScalaGroupEmailerBuild extends Build {
         "fi.vm.sade" %% "scala-utils" % "0.5.1-SNAPSHOT",
         "fi.vm.sade" %% "scala-json" % "0.4.0-SNAPSHOT",
         "fi.vm.sade" %% "scala-logging" % "0.4.0-SNAPSHOT",
-        "fi.vm.sade" %% "scala-cas" % "0.7.0-SNAPSHOT",
+        "fi.vm.sade" %% "scala-cas" % "1.0.1-SNAPSHOT",
         "org.http4s" %% "http4s-blaze-client" % "0.15.8",
         "org.json4s" %% "json4s-core" % "3.5.0",
         "org.json4s" %% "json4s-ext" % "3.5.0",
