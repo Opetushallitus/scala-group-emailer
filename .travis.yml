@@ -5,10 +5,6 @@ language: scala
 jdk:
 - oraclejdk8
 
-cache:
-  directories:
-  - $HOME/.ivy2
-
 env:
   global:
   # ARTIFACTORY_USERNAME
@@ -21,11 +17,11 @@ install:
 - source ci-tools/common/setup-tools.sh
 
 script:
-- sbt -batch clean test
+- mvn clean package -B
 
 deploy:
   provider: script
-  script: sbt -batch publish
+  script: mvn deploy -DskipTests --settings ci-tools/common/maven-settings.xml
   skip_cleanup: true
   on:
     branch: master
