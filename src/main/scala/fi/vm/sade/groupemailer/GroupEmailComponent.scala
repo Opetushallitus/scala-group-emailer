@@ -13,6 +13,8 @@ import org.json4s.jackson.Serialization
 import scala.concurrent.duration.Duration
 import scalaz.concurrent.Task
 
+import scala.util.{Failure, Success, Try}
+
 trait GroupEmailComponent {
   val groupEmailService: GroupEmailService
 
@@ -47,9 +49,9 @@ trait GroupEmailComponent {
     private def runHttp[RequestType <: Content, ResultType](request: Request, content: RequestType, encoder: EntityEncoder[RequestType])(decoder: (Int, String, Request) => ResultType): Task[ResultType] = {
       for {
         response <- authenticatingClient.toHttpService =<< request.withBody(content)(encoder)
-        text <- response.as[String]
+        text <- response.orNotFound.as[String]
       } yield {
-        decoder(response.status.code, text, request)
+        decoder(response.orNotFound.status.code, text, request)
       }
     }
 
