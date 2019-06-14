@@ -31,6 +31,7 @@ trait GroupEmailComponent {
     )
     private val callerIdHeader = Header("Caller-Id", callerId)
     private val emailServiceUrl = uriFromString(groupEmailerSettings.groupEmailServiceUrl)
+    private val requestTimeout = Duration(30, TimeUnit.SECONDS)
 
     def uriFromString(url: String): Uri = {
       Uri.fromString(url).toOption.get
@@ -69,7 +70,7 @@ trait GroupEmailComponent {
           jobId
         case (code, resultString, uri) =>
           throw new IllegalStateException(s"Group email sending failed to ${groupEmailerSettings.groupEmailServiceUrl}. Response status was: $code. Server replied: $resultString")
-      }.runFor(Duration(10, TimeUnit.SECONDS))
+      }.runFor(requestTimeout)
     }
   }
 
