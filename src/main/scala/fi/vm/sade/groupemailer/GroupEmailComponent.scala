@@ -20,7 +20,7 @@ trait GroupEmailComponent {
 
   class RemoteGroupEmailService(groupEmailerSettings: GroupEmailerSettings, callerId: String) extends GroupEmailService with JsonFormats with Logging {
     private val blazeHttpClient: Client = blaze.defaultClient
-    private val casClient = new CasClient(groupEmailerSettings.casUrl, blazeHttpClient)
+    private val casClient = new CasClient(groupEmailerSettings.casUrl, blazeHttpClient, callerId)
     private val casParams = CasParams(groupEmailerSettings.groupEmailCasUrl, groupEmailerSettings.groupEmailCasUsername, groupEmailerSettings.groupEmailCasPassword)
     private val authenticatingClient = CasAuthenticatingClient(
       casClient,
