@@ -30,6 +30,7 @@ trait GroupEmailComponent {
       "JSESSIONID"
     )
     private val callerIdHeader = Header("Caller-Id", callerId)
+    private val csrfHeader = Header("CSRF", callerId)
     private val emailServiceUrl = uriFromString(groupEmailerSettings.groupEmailServiceUrl)
     private val requestTimeout = Duration(30, TimeUnit.SECONDS)
 
@@ -60,7 +61,7 @@ trait GroupEmailComponent {
       val request: Request = Request(
         method = Method.POST,
         uri = emailServiceUrl,
-        headers = Headers(callerIdHeader)
+        headers = Headers(callerIdHeader, csrfHeader)
       )
 
       runHttp[RequestType, Option[String]](request, content, encoder) {
