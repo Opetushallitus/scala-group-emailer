@@ -11,8 +11,9 @@
         <name>fi.vm.sade</name>
     </organization>
     <properties>
-        <scala.version>2.11.7</scala.version>
+        <scala.version>2.11.12</scala.version>
         <http4s.version>0.16.6a</http4s.version>
+        <scala.maven.plugin.version>4.7.2</scala.maven.plugin.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -64,7 +65,12 @@
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-library</artifactId>
-                <version>2.11.12</version>
+                <version>${scala.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-compiler</artifactId>
+                <version>${scala.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.scalaz</groupId>
@@ -169,7 +175,7 @@
                         <configuration>
                             <rules>
                                 <requireJavaVersion>
-                                    <version>1.8</version>
+                                    <version>11</version>
                                 </requireJavaVersion>
                                 <dependencyConvergence/>
                             </rules>
@@ -180,7 +186,7 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>3.3.1</version>
+                <version>${scala.maven.plugin.version}</version>
                 <configuration>
                     <args>
                         <arg>-target:jvm-1.8</arg>
