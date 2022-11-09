@@ -62,4 +62,9 @@ jobs:
         env:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-        run: mvn deploy -DskipTests --settings ci-tools/common/maven-settings.xml
+        run: |
+          set -euo pipefail
+          git clone https://github.com/Opetushallitus/ci-tools.git
+          export ARTIFACT_NAME="scala-group-emailer"
+          source ci-tools/common/setup-tools.sh
+          mvn deploy -DskipTests --settings ci-tools/common/maven-settings.xml
