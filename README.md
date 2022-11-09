@@ -7,4 +7,4 @@ This library is currently built and published to OPH artifactory on the Bamboo C
 
 To use this library, add the following dependency to your SBT build file:
 
-    "fi.vm.sade" %% "scala-group-emailer" % "0.1.0-SNAPSHOT"
+    "fi.vm.sade" %% "scala-group-emailer" % "0.9.2-SNAPSHOT"
