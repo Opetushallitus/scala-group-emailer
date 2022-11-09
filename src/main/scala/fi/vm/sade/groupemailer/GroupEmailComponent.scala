@@ -86,6 +86,7 @@ trait GroupEmailComponent {
 
     override def sendMailWithoutTemplate(htmlEmail: EmailData) = {
       logger.info(s"sendMailWithoutTemplate EmailData: ${Serialization.write(htmlEmail)}")
+      lastEmailSize = htmlEmail.recipient.size
       Some(Serialization.write(htmlEmail))
     }
   }
