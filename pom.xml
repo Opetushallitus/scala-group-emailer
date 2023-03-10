@@ -5,7 +5,7 @@
     <artifactId>scala-group-emailer_2.11</artifactId>
     <packaging>jar</packaging>
     <description>scala-group-emailer</description>
-    <version>0.9.2-SNAPSHOT</version>
+    <version>0.9.3-SNAPSHOT</version>
     <name>scala-group-emailer</name>
     <organization>
         <name>fi.vm.sade</name>
@@ -137,7 +137,7 @@
         <dependency>
             <groupId>fi.vm.sade</groupId>
             <artifactId>scala-cas_2.11</artifactId>
-            <version>2.2.1-SNAPSHOT</version>
+            <version>2.2.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.http4s</groupId>
