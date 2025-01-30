@@ -11,7 +11,7 @@
         <name>fi.vm.sade</name>
     </organization>
     <properties>
-        <scala.version>2.11.12</scala.version>
+        <scala.version>2.13.13</scala.version>
         <http4s.version>0.16.6a</http4s.version>
         <scala.maven.plugin.version>4.7.2</scala.maven.plugin.version>
     </properties>
